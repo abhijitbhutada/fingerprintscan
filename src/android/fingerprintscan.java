@@ -58,7 +58,7 @@ public class fingerprintscan extends CordovaPlugin {
     private UsbDevice usb_Dev;
     private static final String ACTION_USB_PERMISSION = "com.ACPL.FM220_Telecom.USB_PERMISSION";
 
-        public void scan(){
+        public void scanfinger(){
         FM220SDK.CaptureFM220(2,true,true);
     }
 
