@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="cordova-plugin-finerprintscan" version="0.0.1" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>fingerprintscan</name>
+    <js-module name="fingerprintscan" src="www/fingerprintscan.js">
+        <clobbers target="cordova.plugins.fingerprintscan" />
+    </js-module>
+    <platform name="android">
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="fingerprintscan">
+                <param name="android-package" value="cordova.plugin.finerprintscan.fingerprintscan" />
+            </feature>
+        </config-file>
+        <config-file parent="/*" target="AndroidManifest.xml" />
+        <source-file src="src/android/fingerprintscan.java" target-dir="src/cordova/plugin/finerprintscan/fingerprintscan" />
+    </platform>
+</plugin>
