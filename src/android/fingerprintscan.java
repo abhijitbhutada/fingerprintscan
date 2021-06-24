@@ -37,8 +37,8 @@ public class fingerprintscan extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if (action.equals("scan")) {
-            this.scan(message, callbackContext);
+        if (action.equals("scanfinger")) {
+            this.scanfinger(message, callbackContext);
             return true;
         }
         return false;
