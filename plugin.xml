@@ -13,7 +13,7 @@
         <config-file parent="/*" target="AndroidManifest.xml" >
             <uses-permission android:name="android.permission.USB_PERMISSION" />
     </config-file>
-    <config-file parent="application" target="AndroidManifest.xml" >
+    <config-file parent="application/activity" target="AndroidManifest.xml" >
         <intent-filter>
             <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
         </intent-filter>
