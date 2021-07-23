@@ -15,6 +15,7 @@
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
+            <uses-permission android:name="android.permission.USB_PERMISSION" />
     </config-file>
         <source-file src="src/android/fingerprintscan.java" target-dir="src/cordova/plugin/finerprintscan/fingerprintscan" />
         <source-file src="src/android/libs/ACPL_FM220SDK.jar" target-dir="libs" />
