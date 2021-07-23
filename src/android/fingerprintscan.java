@@ -1,367 +1,347 @@
 package cordova.plugin.finerprintscan;
 
-import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.CallbackContext;
-
-
-import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
-import android.support.annotation.RequiresApi;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.util.Base64;
+import android.util.Log;
 import android.widget.Toast;
 
+import com.acpl.access_computech_fm220_sdk.FM220_Scanner_Interface;
+import com.acpl.access_computech_fm220_sdk.acpl_FM220_SDK;
+import com.acpl.access_computech_fm220_sdk.fm220_Capture_Result;
+import com.acpl.access_computech_fm220_sdk.fm220_Init_Result;
+
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.acpl.access_computech_fm220_sdk.*;
+import java.io.ByteArrayOutputStream;
 
-/**
- * This class echoes a string called from JavaScript.
- */
-public class fingerprintscan extends CordovaPlugin {
+public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Interface {
+  public android.content.Context Context;
+  public android.content.Context baseContext;
+  public  UsbDevice device = null;
+  private acpl_FM220_SDK FM220SDK;
+  private static final String Telecom_Device_Key = "";
+  public UsbManager manager;
+  public PendingIntent mPermissionIntent;
+  public UsbDevice usb_Dev;
+  public static final String ACTION_USB_PERMISSION = "com.ACPL.FM220_Telecom.USB_PERMISSION";
+  public Toast toast;
+  private CallbackContext callbackContext = null;
+  PluginResult pluginresult = null;
+  public String base64;
+  public  String temp1 ="";
+  private byte[] t1, t2;
 
-    @Override
-    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if (action.equals("scanfinger")) {
-            this.scanfinger(message, callbackContext);
-            return true;
-        }
-        return false;
+  @Override
+  public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+    this.callbackContext = callbackContext;
+    if (action.equals("scanfinger")) {
+      this.scanfinger(args, callbackContext);
+      return true;
+    }
+    if (action.equals("initialise")) {
+      temp1=args.getJSONObject(0).getString("param1");
+      this.initialise(args, callbackContext);
+      return true;
+    }
+    if (action.equals("matchFingers")) {
+      Log.d(fingerprintscan.class.getName() ,"args  "+args.getJSONObject(0).getString("param1") );
+      boolean result;
+     this.matchFingers(args.getJSONObject(0).getString("param1"));
+
+      return true;
+    }
+    return false;
+  }
+
+  public void scanfinger(JSONArray args, CallbackContext callbackContext) {
+//    this.callbackContext = callbackContext;
+//    cordova.setActivityResultCallback(this);
+//    this.callbackContext.success(800);
+
+    Log.d(fingerprintscan.class.getName() ,"scanfinger  "+args );
+    try{
+//      int p1 = Integer.parseInt("500");
+////      callbackContext.success(p1);
+//      PluginResult result  = new PluginResult(PluginResult.Status.OK);
+//      PluginResult result = new PluginResult(PluginResult.Status.OK, 100  );
+////    result.setKeepCallback(false);
+//    if (callbackContext != null) {
+//      callbackContext.sendPluginResult(result);
+////      callbackContext = null;
+//    }
+
+    } catch(Exception e)
+         {
+           callbackContext.error("something wrong" + e);
+     }
+
+
     }
 
-    public acpl_FM220_SDK FM220SDK;
-
-    private Button Capture_No_Preview,Capture_PreView,Capture_BackGround;
-    private TextView textMessage;
-    private ImageView imageView;
-    private static final String Telecom_Device_Key = "ACPLDEMO";
-
-    //region USB intent and functions
-
-    private UsbManager manager;
-    private PendingIntent mPermissionIntent;
-    private UsbDevice usb_Dev;
-    private static final String ACTION_USB_PERMISSION = "com.ACPL.FM220_Telecom.USB_PERMISSION";
-
-        public void scanfinger(){
-        FM220SDK.CaptureFM220(2,true,true);
-    }
-
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                int pid, vid;
-                pid = device.getProductId();
-                vid = device.getVendorId();
-                if ((pid == 0x8225 || pid == 0x8220)  && (vid == 0x0bca)) {
-                    FM220SDK.stopCaptureFM220();
-                    FM220SDK.unInitFM220();
-                    usb_Dev=null;
-                    textMessage.setText("FM220 disconnected");
-                    DisableCapture();
-                }
-            }
-            if (ACTION_USB_PERMISSION.equals(action)) {
-                synchronized (this) {
-                    UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                    if (intent.getBooleanExtra(
-                            UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (device != null) {
-                            // call method to set up device communication
-                            int pid, vid;
-                            pid = device.getProductId();
-                            vid = device.getVendorId();
-                            if ((pid == 0x8225 || pid == 0x8220)  && (vid == 0x0bca)) {
-                                fm220_Init_Result res =  FM220SDK.InitScannerFM220(manager,device,Telecom_Device_Key);
-                                if (res.getResult()) {
-                                    textMessage.setText("FM220 ready. "+res.getSerialNo());
-                                    EnableCapture();
-                                }
-                                else {
-                                    textMessage.setText("Error :-"+res.getError());
-                                    DisableCapture();
-                                }
-                            }
-                        }
-                    } else {
-                        textMessage.setText("User Blocked USB connection");
-                        textMessage.setText("FM220 ready");
-                        DisableCapture();
-                    }
-                }
-            }
-            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-                synchronized (this) {
-                    UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                    if (device != null) {
-                        // call method to set up device communication
-                        int pid, vid;
-                        pid = device.getProductId();
-                        vid = device.getVendorId();
-                        if ((pid == 0x8225)  && (vid == 0x0bca) && !FM220SDK.FM220isTelecom()) {
-                            Toast.makeText(context,"Wrong device type application restart required!",Toast.LENGTH_LONG).show();
-                            finish();
-                        }
-                        if ((pid == 0x8220)  && (vid == 0x0bca)&& FM220SDK.FM220isTelecom()) {
-                            Toast.makeText(context,"Wrong device type application restart required!",Toast.LENGTH_LONG).show();
-                            finish();
-                        }
-
-                        if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
-                            if (!manager.hasPermission(device)) {
-                                textMessage.setText("FM220 requesting permission");
-                                manager.requestPermission(device, mPermissionIntent);
-                            } else {
-                                fm220_Init_Result res =  FM220SDK.InitScannerFM220(manager,device,Telecom_Device_Key);
-                                if (res.getResult()) {
-                                    textMessage.setText("FM220 ready. "+res.getSerialNo());
-                                    EnableCapture();
-                                }
-                                else {
-                                    textMessage.setText("Error :-"+res.getError());
-                                    DisableCapture();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+  private final android.content.BroadcastReceiver mUsbReceiver = new android.content.BroadcastReceiver() {
+    public void onReceive(Context context, Intent intent) {
+      String action = intent.getAction();
+      if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+         device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+        int pid, vid;
+        pid = device.getProductId();
+        vid = device.getVendorId();
+        if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
+          FM220SDK.stopCaptureFM220();
+          FM220SDK.unInitFM220();
+          usb_Dev = null;
+          DisableCapture();
         }
-    };
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        if (getIntent() != null) {
-            return;
-        }
-        super.onNewIntent(intent);
-        setIntent(intent);
-        try {
-            if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED) && usb_Dev==null) {
-                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null) {
-                    // call method to set up device communication & Check pid
-                    int pid, vid;
-                    pid = device.getProductId();
-                    vid = device.getVendorId();
-                    if ((pid == 0x8225)  && (vid == 0x0bca)) {
-                        if (manager != null) {
-                            if (!manager.hasPermission(device)) {
-                                textMessage.setText("FM220 requesting permission");
-                                manager.requestPermission(device, mPermissionIntent);
-                            }
-//                            else {
-//                                fm220_Init_Result res =  FM220SDK.InitScannerFM220(manager,device,Telecom_Device_Key);
-//                                if (res.getResult()) {
-//                                    textMessage.setText("FM220 ready. "+res.getSerialNo());
-//                                    EnableCapture();
-//                                }
-//                                else {
-//                                    textMessage.setText("Error :-"+res.getError());
-//                                    DisableCapture();
-//                                }
-//                            }
-                        }
-                    }
+      }
+      if (ACTION_USB_PERMISSION.equals(action)) {
+        synchronized (this) {
+           device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+          if (intent.getBooleanExtra(
+            UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+            if (device != null) {
+              // call method to set up device communication
+              int pid, vid;
+              pid = device.getProductId();
+              vid = device.getVendorId();
+              if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
+                fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+                if (res.getResult()) {
+                  showToast("FM220 ready. " + res.getSerialNo());
+                  EnableCapture();
+                } else {
+                  showToast("Error :-" + res.getError());
+                  DisableCapture();
                 }
+              }
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-
+          } else {
+            showToast("User Blocked USB connection");
+            DisableCapture();
+          }
         }
-    }
-
-
-
-    @Override
-    protected void onDestroy() {
-        try {
-            unregisterReceiver(mUsbReceiver);
-            FM220SDK.unInitFM220();
-        }  catch (Exception e) {
-            e.printStackTrace();
-        }
-        super.onDestroy();
-    }
-    //endregion
-
-
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-
-//        FM220SDK = new acpl_FM220_SDK(getApplicationContext(),this);
-        textMessage = (TextView) findViewById(R.id.textMessage);
-        Capture_PreView = (Button) findViewById(R.id.button2);
-        Capture_No_Preview = (Button) findViewById(R.id.button);
-        Capture_BackGround= (Button) findViewById(R.id.button3);
-        imageView = (ImageView)  findViewById(R.id.imageView);
-
-        //Region USB initialisation and Scanning for device
-        SharedPreferences sp = getSharedPreferences("last_FM220_type", Activity.MODE_PRIVATE);
-        boolean oldDevType = sp.getBoolean("FM220type", true);
-
-        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
-        if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-        mPermissionIntent = PendingIntent.getBroadcast(getBaseContext(), 1, piIntent, 0);
-
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        filter.addAction(ACTION_USB_PERMISSION);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        registerReceiver(mUsbReceiver, filter);
-        UsbDevice device = null;
-        for ( UsbDevice mdevice : manager.getDeviceList().values()) {
+      }
+      if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+        synchronized (this) {
+           device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+          if (device != null) {
+            // call method to set up device communication
             int pid, vid;
-            pid = mdevice.getProductId();
-            vid = mdevice.getVendorId();
-            boolean devType;
-            if ((pid == 0x8225) && (vid == 0x0bca)) {
-                FM220SDK = new acpl_FM220_SDK(getApplicationContext(),this,true);
-                devType=true;
+            pid = device.getProductId();
+            vid = device.getVendorId();
+            if ((pid == 0x8225) && (vid == 0x0bca) && !FM220SDK.FM220isTelecom()) {
+              showToast( "Wrong device type application restart required!");
             }
-            else if ((pid == 0x8220) && (vid == 0x0bca)) {
-                FM220SDK = new acpl_FM220_SDK(getApplicationContext(),this,false);
-                devType=false;
-            } else {
-                FM220SDK = new acpl_FM220_SDK(getApplicationContext(),this,oldDevType);
-                devType=oldDevType;
+            if ((pid == 0x8220) && (vid == 0x0bca) && FM220SDK.FM220isTelecom()) {
+              showToast( "Wrong device type application restart required!");
             }
-            if (oldDevType != devType) {
-                SharedPreferences.Editor editor = sp.edit();
-                editor.putBoolean("FM220type", devType);
-                editor.commit();
-            }
+
             if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
-                device  = mdevice;
-                if (!manager.hasPermission(device)) {
-                    textMessage.setText("FM220 requesting permission");
-                    manager.requestPermission(device, mPermissionIntent);
+              if (!manager.hasPermission(device)) {
+                Log.d(fingerprintscan.class.getName() ,"FM220 requesting permission" );
+                manager.requestPermission(device, mPermissionIntent);
+              } else {
+                fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+                if (res.getResult()) {
+                  Log.d("FM220 ready. " , res.getSerialNo());
+                  EnableCapture();
                 } else {
-                    Intent intent = this.getIntent();
-                    if (intent != null) {
-                        if (intent.getAction().equals("android.hardware.usb.action.USB_DEVICE_ATTACHED")) {
-                            finishAffinity();
-                        }
-                    }
-                    fm220_Init_Result res =  FM220SDK.InitScannerFM220(manager,device,Telecom_Device_Key);
-                    if (res.getResult()) {
-                        textMessage.setText("FM220 ready. "+res.getSerialNo());
-                        EnableCapture();
-                    }
-                    else {
-                        textMessage.setText("Error :-"+res.getError());
-                        DisableCapture();
-                    }
+                  Log.d("Error :-" , res.getError());
+                  DisableCapture();
                 }
-                break;
+              }
             }
+          }
         }
-        if (device == null) {
-            textMessage.setText("Pl connect FM220");
-            FM220SDK = new acpl_FM220_SDK(getApplicationContext(),this,oldDevType);
-        }
-
-        //endregion
-
-
-        Capture_BackGround.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DisableCapture();
-                textMessage.setText("Pl wait..");
-                imageView.setImageBitmap(null);
-                FM220SDK.CaptureFM220(2);
-
-            }
-        });
-
-        Capture_No_Preview.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DisableCapture();
-                FM220SDK.CaptureFM220(2,true,false);
-            }
-        });
-
-        Capture_PreView.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DisableCapture();
-                FM220SDK.CaptureFM220(2,true,true);
-            }
-        });
+      }
     }
+  };
+  public void initialise(JSONArray args, CallbackContext callback) {
+    Log.d("initialise", "initialise");
 
-    private void DisableCapture() {
-        Capture_BackGround.setEnabled(false);
-        Capture_No_Preview.setEnabled(false);
-        Capture_PreView.setEnabled(false);
-        imageView.setImageBitmap(null);
+    manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
+    final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
+    if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+    mPermissionIntent = PendingIntent.getBroadcast(this.cordova.getActivity().getBaseContext(), 1, piIntent, 0);
+    for (UsbDevice mdevice : manager.getDeviceList().values()) {
+      int pid, vid;
+      pid = mdevice.getProductId();
+      vid = mdevice.getVendorId();
+      if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
+        device = mdevice;
+      }
     }
-    private void EnableCapture() {
-        Capture_BackGround.setEnabled(true);
-        Capture_No_Preview.setEnabled(true);
-        Capture_PreView.setEnabled(true);
-    }
-    @Override
-    public void ScannerProgressFM220(final boolean DisplayImage,final Bitmap ScanImage,final boolean DisplayText,final String statusMessage) {
-        MainActivity.this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (DisplayText) {
-                    textMessage.setText(statusMessage);
-                    textMessage.invalidate();
-                }
-                if (DisplayImage) {
-                    imageView.setImageBitmap(ScanImage);
-                    imageView.invalidate();
-                }
-            }
-        });
-    }
+    if (!manager.hasPermission(device)) {
+      Log.d("FM220 ready. ","FM220 requesting permission");
+      manager.requestPermission(device, mPermissionIntent);
 
-    @Override
-    public void ScanCompleteFM220(final fm220_Capture_Result result) {
-        MainActivity.this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (FM220SDK.FM220Initialized())  EnableCapture();
-                if (result.getResult()) {
-                    imageView.setImageBitmap(result.getScanImage());
-                    byte [] isotem  = result.getISO_Template();   // ISO TEMPLET of FingerPrint.....
-//                    isotem is byte value of fingerprints
-                    textMessage.setText("Success NFIQ:"+Integer.toString(result.getNFIQ())+"  SrNo:"+result.getSerialNo());
-                } else {
-                    imageView.setImageBitmap(null);
-                    textMessage.setText(result.getError());
-                }
-                imageView.invalidate();
-                textMessage.invalidate();
-            }
-        });
-    
+      FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
+      fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+      if (res.getResult()) {
+        Log.d("FM220 readyto use. ", res.getSerialNo());
+        FM220SDK.CaptureFM220(2, true, true);
+      }
+    } else {
+      FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
+      fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+      if (res.getResult()) {
+        Log.d("FM220 readyto use. ", res.getSerialNo());
+        FM220SDK.CaptureFM220(2, true, true);
+      }
+
+    }
+    IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+    filter.addAction(ACTION_USB_PERMISSION);
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+    this.cordova.getActivity().registerReceiver(mUsbReceiver, filter);
+
+    PluginResult pluginresult = new PluginResult(PluginResult.Status.NO_RESULT);
+    pluginresult.setKeepCallback(true);
+  }
+  private void DisableCapture() {
+
+  }
+  private void EnableCapture() {
+  }
+
+  @Override
+  public void ScannerProgressFM220(final boolean DisplayImage, final Bitmap ScanImage, final boolean DisplayText, final String statusMessage) {
+    showToast(statusMessage);
+  }
+
+  @Override
+  public void ScanCompleteFM220(fm220_Capture_Result result) {
+
+    if (result.getResult()) {
+      showToast("Scan Successfull");
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      result.getScanImage().compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+      byte[] byteArray = byteArrayOutputStream.toByteArray();
+      base64 = Base64.encodeToString(byteArray, Base64.NO_WRAP);
+      Log.d("base64image", base64);
+      t1 = result.getISO_Template();
+      String str = Base64.encodeToString(t1, Base64.DEFAULT);
+//      this.matchFingers(str);
+//      FM220SDK.MatchFM220(2, true, true, Base64.decode(str,Base64.DEFAULT));
+      //      return to plugin as string
+//      and convert to string to byte arr
+
+
+      JSONObject jsonObject = new JSONObject();
+      try {
+        jsonObject.put("base64", base64);
+        jsonObject.put("t1", str);
+      } catch (JSONException e) {
+        e.printStackTrace();
+      }
+      pluginresult = new PluginResult(PluginResult.Status.OK, jsonObject);
+      pluginresult.setKeepCallback(true);
+      if (callbackContext != null) {
+        callbackContext.sendPluginResult(pluginresult);
+        callbackContext = null;
+
+      }
+
+
+    }
+    else {
+      showToast("Scan Failed!! Try Again");
+    }
+  }
+
+
+  @Override
+  public void ScanMatchFM220(final fm220_Capture_Result result) {
+    JSONObject jsonObject = new JSONObject();
+    if (result.getResult()) {
+
+      Log.d(fingerprintscan.class.getName() ,"result  "+"Finger matched" );
+      showToast("Finger matched");
+
+      try {
+        jsonObject.put("status", true);
+
+      } catch (JSONException e) {
+        e.printStackTrace();
+      }
+
+
+    } else {
+      Log.d(fingerprintscan.class.getName() ,"result  "+"Finger not matched" );
+      showToast("Finger not  matched");
+      try {
+        jsonObject.put("status", false);
+
+      } catch (JSONException e) {
+        e.printStackTrace();
+      }
+    }
+    pluginresult = new PluginResult(PluginResult.Status.OK, jsonObject);
+    pluginresult.setKeepCallback(true);
+    if (callbackContext != null) {
+      callbackContext.sendPluginResult(pluginresult);
+      callbackContext = null;
+
+    }
+  }
+
+  public void onDestroy() {
+    try {
+      this.cordova.getActivity().unregisterReceiver(mUsbReceiver);
+      FM220SDK.unInitFM220();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    super.onDestroy();
+  }
+  public void showToast(String message) {
+    this.cordova.getActivity().runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        Context context = cordova.getActivity().getApplicationContext();
+
+    if (toast != null) {
+      toast.cancel();
+    }
+    toast = Toast.makeText(context, message, Toast.LENGTH_SHORT);
+    toast.show();
+  }
+    });
+  }
+  private void matchFingers(String str ) {
+    Log.d(fingerprintscan.class.getName() ,"str  "+str );
+    manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
+    final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
+    if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+    mPermissionIntent = PendingIntent.getBroadcast(this.cordova.getActivity().getBaseContext(), 1, piIntent, 0);
+    for (UsbDevice mdevice : manager.getDeviceList().values()) {
+      int pid, vid;
+      pid = mdevice.getProductId();
+      vid = mdevice.getVendorId();
+      if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
+        device = mdevice;
+      }
+    }
+    FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
+    fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+    if (!manager.hasPermission(device)) {
+      Log.d("FM220 ready. ","FM220 requesting permission");
+      manager.requestPermission(device, mPermissionIntent);
+
+    }
+    FM220SDK.MatchFM220(2, true, true, Base64.decode(str,Base64.DEFAULT));
+  }
+
 }
