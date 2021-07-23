@@ -5,21 +5,22 @@
         <clobbers target="cordova.plugins.fingerprintscan" />
     </js-module>
     <platform name="android">
+        <framework src="src/android/xml/mybuild.gradle" custom="true" type="gradleReference" />
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="fingerprintscan">
                 <param name="android-package" value="cordova.plugin.finerprintscan.fingerprintscan" />
             </feature>
         </config-file>
-        <config-file parent="/*" target="AndroidManifest.xml" >
+        <config-file parent="/*" target="AndroidManifest.xml">
             <uses-permission android:name="android.permission.USB_PERMISSION" />
-    </config-file>
-    <config-file parent="application/activity" target="AndroidManifest.xml" >
-        <intent-filter>
-            <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-        </intent-filter>
-        <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter" />
+        </config-file>
+        <config-file parent="application/activity" target="AndroidManifest.xml">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter" />
 
-    </config-file>
+        </config-file>
         <source-file src="src/android/fingerprintscan.java" target-dir="src/cordova/plugin/finerprintscan/fingerprintscan" />
         <source-file src="src/android/libs/ACPL_FM220SDK.jar" target-dir="libs" />
         <source-file src="src/android/libs/arm64-v8a" target-dir="libs" />
@@ -27,6 +28,5 @@
         <source-file src="src/android/libs/x86" target-dir="libs" />
         <source-file src="src/android/libs/x86_64" target-dir="libs" />
         <source-file src="src/android/xml/device_filter.xml" target-dir="res/xml" />
-
     </platform>
 </plugin>
