@@ -5,7 +5,7 @@
         <clobbers target="cordova.plugins.fingerprintscan" />
     </js-module>
     <platform name="android">
-        <framework src="src/android/xml/mybuild.gradle" custom="true" type="gradleReference" />
+        <framework src="src/android/gradle/mybuild.gradle" custom="true" type="gradleReference" />
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="fingerprintscan">
                 <param name="android-package" value="cordova.plugin.finerprintscan.fingerprintscan" />
