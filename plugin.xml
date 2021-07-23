@@ -10,12 +10,16 @@
                 <param name="android-package" value="cordova.plugin.finerprintscan.fingerprintscan" />
             </feature>
         </config-file>
-        <config-file parent="/*" target="AndroidManifest.xml" />
+        <config-file parent="/*" target="AndroidManifest.xml" >
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter" />
+    </config-file>
         <source-file src="src/android/fingerprintscan.java" target-dir="src/cordova/plugin/finerprintscan/fingerprintscan" />
         <source-file src="src/android/libs/ACPL_FM220SDK.jar" target-dir="libs" />
         <source-file src="src/android/libs/arm64-v8a" target-dir="libs" />
         <source-file src="src/android/libs/armeabi-v7a" target-dir="libs" />
         <source-file src="src/android/libs/x86" target-dir="libs" />
         <source-file src="src/android/libs/x86_64" target-dir="libs" />
+        <source-file src="src/android/xml/device_filter.xml" target-dir="res/xml" />
+
     </platform>
 </plugin>
