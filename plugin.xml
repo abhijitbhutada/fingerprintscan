@@ -11,11 +11,14 @@
             </feature>
         </config-file>
         <config-file parent="/*" target="AndroidManifest.xml" >
-            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter" />
-            <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-            </intent-filter>
             <uses-permission android:name="android.permission.USB_PERMISSION" />
+    </config-file>
+    <config-file parent="application" target="AndroidManifest.xml" >
+        <intent-filter>
+            <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+        </intent-filter>
+        <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter" />
+
     </config-file>
         <source-file src="src/android/fingerprintscan.java" target-dir="src/cordova/plugin/finerprintscan/fingerprintscan" />
         <source-file src="src/android/libs/ACPL_FM220SDK.jar" target-dir="libs" />
