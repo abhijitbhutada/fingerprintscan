@@ -12,3 +12,7 @@ module.exports.initialise = function (arg0, success, error) {
     exec(success, error, 'fingerprintscan', 'initialise', [arg0]);
 
 }
+module.exports.matchFingers = function (arg0, success, error) {
+    exec(success, error, 'fingerprintscan', 'matchFingers', [arg0]);
+
+}
