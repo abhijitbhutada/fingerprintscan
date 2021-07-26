@@ -16,7 +16,3 @@ module.exports.matchFingers = function (arg0, success, error) {
     exec(success, error, 'fingerprintscan', 'matchFingers', [arg0]);
 
 }
-module.exports.registerDevice = function (arg0, success, error) {
-    exec(success, error, 'fingerprintscan', 'registerDevice', [arg0]);
-
-}
