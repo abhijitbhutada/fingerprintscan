@@ -59,10 +59,7 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
 
       return true;
     }
-    if (action.equals("registerDevice")) {
-     this.registerDevice();
-      return true;
-    }
+  
     return false;
   }
 
