@@ -180,24 +180,28 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
         device = mdevice;
       }
     }
-    if (!manager.hasPermission(device)) {
-      Log.d("FM220 ready. ","FM220 requesting permission");
-      manager.requestPermission(device, mPermissionIntent);
+    try {
+      if (!manager.hasPermission(device)) {
+        Log.d("FM220 ready. ", "FM220 requesting permission");
+        manager.requestPermission(device, mPermissionIntent);
 
-      FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
-      fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
-      if (res.getResult()) {
-        Log.d("FM220 readyto use. ", res.getSerialNo());
-        FM220SDK.CaptureFM220(2, true, true);
-      }
-    } else {
-      FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
-      fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
-      if (res.getResult()) {
-        Log.d("FM220 readyto use. ", res.getSerialNo());
-        FM220SDK.CaptureFM220(2, true, true);
-      }
+        FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
+        fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+        if (res.getResult()) {
+          Log.d("FM220 readyto use. ", res.getSerialNo());
+          FM220SDK.CaptureFM220(2, true, true);
+        }
+      } else {
+        FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
+        fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+        if (res.getResult()) {
+          Log.d("FM220 readyto use. ", res.getSerialNo());
+          FM220SDK.CaptureFM220(2, true, true);
+        }
 
+      }
+    }catch (Exception e){
+      showToast("Check Device or OTG Permission");
     }
     IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
     filter.addAction(ACTION_USB_PERMISSION);
