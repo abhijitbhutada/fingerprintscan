@@ -51,15 +51,16 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
       return true;
     }
     if (action.equals("initialise")) {
-      temp1=args.getJSONObject(0).getString("param1");
       this.initialise(args, callbackContext);
       return true;
     }
     if (action.equals("matchFingers")) {
-      Log.d(fingerprintscan.class.getName() ,"args  "+args.getJSONObject(0).getString("param1") );
-      boolean result;
      this.matchFingers(args.getJSONObject(0).getString("param1"));
 
+      return true;
+    }
+    if (action.equals("registerDevice")) {
+     this.registerDevice();
       return true;
     }
     return false;
@@ -343,5 +344,25 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     }
     FM220SDK.MatchFM220(2, true, true, Base64.decode(str,Base64.DEFAULT));
   }
+  public void registerDevice() {
+    Log.d("initialise", "initialise");
 
+    manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
+    final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
+    if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+    mPermissionIntent = PendingIntent.getBroadcast(this.cordova.getActivity().getBaseContext(), 1, piIntent, 0);
+    for (UsbDevice mdevice : manager.getDeviceList().values()) {
+      int pid, vid;
+      pid = mdevice.getProductId();
+      vid = mdevice.getVendorId();
+      if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
+        device = mdevice;
+      }
+    }
+    IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+    filter.addAction(ACTION_USB_PERMISSION);
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+    this.cordova.getActivity().registerReceiver(mUsbReceiver, filter);
+  }
 }
