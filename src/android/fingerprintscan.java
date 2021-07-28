@@ -355,6 +355,7 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     });
   }
   private void matchFingers(String str ) {
+    this.registerDevice();
     Log.d(fingerprintscan.class.getName() ,"str  "+str );
     manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
     final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
