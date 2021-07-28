@@ -59,7 +59,12 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
 
       return true;
     }
-  
+    if (action.equals("registerDevice")) {
+      this.registerDevice(args.getJSONObject(0).getString("param1"));
+
+      return true;
+    }
+
     return false;
   }
 
@@ -119,7 +124,7 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
                   showToast("FM220 ready. " + res.getSerialNo());
                   EnableCapture();
                 } else {
-                  showToast("Error :-" + res.getError());
+                  showToast("Error! Try Again");
                   DisableCapture();
                 }
               }
@@ -138,12 +143,21 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
             int pid, vid;
             pid = device.getProductId();
             vid = device.getVendorId();
-            if ((pid == 0x8225) && (vid == 0x0bca) && !FM220SDK.FM220isTelecom()) {
-              showToast( "Wrong device type application restart required!");
+            try {
+              if ((pid == 0x8225) && (vid == 0x0bca) && !FM220SDK.FM220isTelecom()) {
+                showToast( "Wrong device type application restart required!");
+              }
+            }catch (Exception e){
+              showToast( "Error ! Restart Application");
             }
-            if ((pid == 0x8220) && (vid == 0x0bca) && FM220SDK.FM220isTelecom()) {
-              showToast( "Wrong device type application restart required!");
+            try {
+              if ((pid == 0x8220) && (vid == 0x0bca) && FM220SDK.FM220isTelecom()) {
+                showToast( "Wrong device type application restart required!");
+              }
+            }catch (Exception e){
+              showToast( "Error ! Restart Application");
             }
+
 
             if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
               if (!manager.hasPermission(device)) {
@@ -166,8 +180,6 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     }
   };
   public void initialise(JSONArray args, CallbackContext callback) {
-    Log.d("initialise", "initialise");
-
     manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
     final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
     if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
@@ -182,7 +194,6 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     }
     try {
       if (!manager.hasPermission(device)) {
-        Log.d("FM220 ready. ", "FM220 requesting permission");
         manager.requestPermission(device, mPermissionIntent);
 
         FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
@@ -193,10 +204,15 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
         }
       } else {
         FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
+        try{
         fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
         if (res.getResult()) {
           Log.d("FM220 readyto use. ", res.getSerialNo());
-          FM220SDK.CaptureFM220(2, true, true);
+            FM220SDK.CaptureFM220(2, true, true);
+          }
+        }
+        catch (Exception error){
+          showToast("device does not exist or is restricted");
         }
 
       }
@@ -345,5 +361,43 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     }
     FM220SDK.MatchFM220(2, true, true, Base64.decode(str,Base64.DEFAULT));
   }
-  
+  public void registerDevice(JSONArray args, CallbackContext callback) {
+    manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
+    final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
+    if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+    mPermissionIntent = PendingIntent.getBroadcast(this.cordova.getActivity().getBaseContext(), 1, piIntent, 0);
+    for (UsbDevice mdevice : manager.getDeviceList().values()) {
+      int pid, vid;
+      pid = mdevice.getProductId();
+      vid = mdevice.getVendorId();
+      if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
+        device = mdevice;
+      }
+    }
+    try {
+      if (!manager.hasPermission(device)) {
+        manager.requestPermission(device, mPermissionIntent);
+      }
+    }
+      catch (Exception error){
+        showToast("device does not exist or is restricted");
+      }
+    IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+    filter.addAction(ACTION_USB_PERMISSION);
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+    this.cordova.getActivity().registerReceiver(mUsbReceiver, filter);
+    JSONObject jsonObject = new JSONObject();
+    try {
+      jsonObject.put("status", true);
+    } catch (JSONException e) {
+      e.printStackTrace();
+    }
+    pluginresult = new PluginResult(PluginResult.Status.OK, jsonObject);
+    pluginresult.setKeepCallback(true);
+      callbackContext.sendPluginResult(pluginresult);
+      callbackContext = null;
+
+
+    }
 }
