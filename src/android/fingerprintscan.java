@@ -50,8 +50,8 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
       this.scanfinger(args, callbackContext);
       return true;
     }
-    if (action.equals("initialise")) {
-      this.initialise(args, callbackContext);
+    if (action.equals("startScanning")) {
+      this.startScanning(args, callbackContext);
       return true;
     }
     if (action.equals("matchFingers")) {
@@ -60,7 +60,7 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
       return true;
     }
     if (action.equals("registerDevice")) {
-      this.registerDevice(args.getJSONObject(0).getString("param1"));
+      this.registerDevice();
 
       return true;
     }
@@ -102,8 +102,12 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
         pid = device.getProductId();
         vid = device.getVendorId();
         if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
-          FM220SDK.stopCaptureFM220();
-          FM220SDK.unInitFM220();
+          try {
+            FM220SDK.stopCaptureFM220();
+            FM220SDK.unInitFM220();
+          }catch (Exception e){
+
+          }
           usb_Dev = null;
           DisableCapture();
         }
@@ -119,13 +123,17 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
               pid = device.getProductId();
               vid = device.getVendorId();
               if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
-                fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
-                if (res.getResult()) {
-                  showToast("FM220 ready. " + res.getSerialNo());
-                  EnableCapture();
-                } else {
-                  showToast("Error! Try Again");
-                  DisableCapture();
+                try {
+                  fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+                  if (res.getResult()) {
+                    showToast("FM220 ready. " + res.getSerialNo());
+                    EnableCapture();
+                  } else {
+                    showToast("Error! Try Again");
+                    DisableCapture();
+                  }
+                }catch (Exception error){
+//                  showToast("device does not exist or is restricted");
                 }
               }
             }
@@ -148,38 +156,40 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
                 showToast( "Wrong device type application restart required!");
               }
             }catch (Exception e){
-              showToast( "Error ! Restart Application");
             }
             try {
               if ((pid == 0x8220) && (vid == 0x0bca) && FM220SDK.FM220isTelecom()) {
                 showToast( "Wrong device type application restart required!");
               }
             }catch (Exception e){
-              showToast( "Error ! Restart Application");
             }
 
 
             if ((pid == 0x8225 || pid == 0x8220) && (vid == 0x0bca)) {
-              if (!manager.hasPermission(device)) {
-                Log.d(fingerprintscan.class.getName() ,"FM220 requesting permission" );
-                manager.requestPermission(device, mPermissionIntent);
-              } else {
-                fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
-                if (res.getResult()) {
-                  Log.d("FM220 ready. " , res.getSerialNo());
-                  EnableCapture();
+              try {
+                if (!manager.hasPermission(device)) {
+                  Log.d(fingerprintscan.class.getName(), "FM220 requesting permission");
+                  manager.requestPermission(device, mPermissionIntent);
                 } else {
-                  Log.d("Error :-" , res.getError());
-                  DisableCapture();
+                  fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+                  if (res.getResult()) {
+                    Log.d("FM220 ready. ", res.getSerialNo());
+                    EnableCapture();
+                  } else {
+                    Log.d("Error :-", res.getError());
+                    DisableCapture();
+                  }
                 }
               }
-            }
+              catch (Exception error){
+                showToast("Device does not exist or check OTG connection");
+              }}
           }
         }
       }
     }
   };
-  public void initialise(JSONArray args, CallbackContext callback) {
+  public void startScanning(JSONArray args, CallbackContext callback) {
     manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
     final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
     if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
@@ -195,12 +205,18 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     try {
       if (!manager.hasPermission(device)) {
         manager.requestPermission(device, mPermissionIntent);
-
+      }
+        if (manager.hasPermission(device))
+        {
         FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
-        fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
-        if (res.getResult()) {
-          Log.d("FM220 readyto use. ", res.getSerialNo());
-          FM220SDK.CaptureFM220(2, true, true);
+        try {
+          fm220_Init_Result res = FM220SDK.InitScannerFM220(manager, device, Telecom_Device_Key);
+          if (res.getResult()) {
+            Log.d("FM220 readyto use. ", res.getSerialNo());
+            FM220SDK.CaptureFM220(2, true, true);
+          }
+        }catch (Exception e){
+          this.showToast("Device disconnected");
         }
       } else {
         FM220SDK = new acpl_FM220_SDK(this.cordova.getActivity().getApplicationContext(), this, false);
@@ -361,7 +377,7 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     }
     FM220SDK.MatchFM220(2, true, true, Base64.decode(str,Base64.DEFAULT));
   }
-  public void registerDevice(JSONArray args, CallbackContext callback) {
+  public void registerDevice() {
     manager = (UsbManager) this.cordova.getActivity().getSystemService(android.content.Context.USB_SERVICE);
     final Intent piIntent = new Intent(ACTION_USB_PERMISSION);
     if (Build.VERSION.SDK_INT >= 16) piIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);

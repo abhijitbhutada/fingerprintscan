@@ -8,8 +8,8 @@ module.exports.scanfinger = function (arg0, success, error) {
     exec(success, error, 'fingerprintscan', 'scanfinger', [arg0]);
 
 }
-module.exports.initialise = function (arg0, success, error) {
-    exec(success, error, 'fingerprintscan', 'initialise', [arg0]);
+module.exports.startScanning = function (arg0, success, error) {
+    exec(success, error, 'fingerprintscan', 'startScanning', [arg0]);
 
 }
 module.exports.matchFingers = function (arg0, success, error) {
