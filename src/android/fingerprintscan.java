@@ -292,6 +292,13 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     }
     else {
       showToast("Scan Failed!! Try Again");
+      pluginresult = new PluginResult(PluginResult.Status.ERROR, "Scan Failed");
+      pluginresult.setKeepCallback(true);
+      if (callbackContext != null) {
+        callbackContext.sendPluginResult(pluginresult);
+        callbackContext = null;
+
+      }
     }
   }
 
@@ -410,10 +417,10 @@ public class fingerprintscan extends CordovaPlugin implements FM220_Scanner_Inte
     } catch (JSONException e) {
       e.printStackTrace();
     }
-    pluginresult = new PluginResult(PluginResult.Status.OK, jsonObject);
-    pluginresult.setKeepCallback(true);
-      callbackContext.sendPluginResult(pluginresult);
-      callbackContext = null;
+//    pluginresult = new PluginResult(PluginResult.Status.OK, jsonObject);
+//    pluginresult.setKeepCallback(true);
+//      callbackContext.sendPluginResult(pluginresult);
+//      callbackContext = null;
 
 
     }
